@@ -19,6 +19,8 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'book.fill': 'book',
+  'add.fill': 'add',
+  'map.fill': 'map',
 } as any;
 
 /**

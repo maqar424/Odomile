@@ -17,10 +17,10 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
-        name="placeholder"
+        name="addFlight"
         options={{
-          title: 'placeholder',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Add Flight',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="add.fill" color={color} />,
         }}
       />
 
@@ -32,10 +32,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="paths" // WICHTIG: Muss exakt wie der Dateiname heißen (ohne .tsx)
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Paths',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
         }}
       />
     </Tabs>
