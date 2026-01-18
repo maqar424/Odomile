@@ -25,7 +25,7 @@ export default function FlightLogScreen() {
     // --- HIER EINFÜGEN ---
     // Diese Zeile löscht die DB bei jedem Laden.
     // Einmal speichern, App neu laden lassen, dann diese Zeile wieder löschen!
-    Database.clearDatabase(); 
+    //Database.clearDatabase(); 
     // ---------------------
     const data = Database.getFlights();
     setFlights(data);

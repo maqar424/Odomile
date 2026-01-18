@@ -10,17 +10,14 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, Touc
 export default function AddFlightScreen() {
   const router = useRouter();
   
-  // State für Dateien
   const [csvFile, setCsvFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [kmlFile, setKmlFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   
-  // State für die Flughäfen (Manuelle Eingabe)
   const [depCode, setDepCode] = useState('');
   const [arrCode, setArrCode] = useState('');
   
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Hilfsfunktion: Text in Großbuchstaben umwandeln
   const handleAirportChange = (text: string, setter: (val: string) => void) => {
     setter(text.toUpperCase());
   };
@@ -54,7 +51,6 @@ export default function AddFlightScreen() {
   };
 
   const handleImport = async () => {
-    // 1. Validierung
     if (!csvFile || !kmlFile) {
       Alert.alert("Info", "Bitte erst CSV und KML Datei auswählen.");
       return;
@@ -71,41 +67,44 @@ export default function AddFlightScreen() {
       const safeCsvName = `flight_${timestamp}.csv`;
       const safeKmlName = `flight_${timestamp}.kml`;
 
-      // 2. Dateien sichern
+      // 1. Dateien sichern
       const savedCsvPath = await FileProcessor.saveFileToAppStorage(csvFile.uri, safeCsvName);
       const savedKmlPath = await FileProcessor.saveFileToAppStorage(kmlFile.uri, safeKmlName);
 
-      // 3. CSV Daten laden (Distanz & Datum)
+      // 2. CSV Daten laden
       const flightData = await FileProcessor.processFlightData(savedCsvPath);
 
-      // 4. KML Daten laden (Airline, Flugnr, Link)
+      // 3. KML Daten laden
       const metadata = await FileProcessor.extractMetadataFromKml(savedKmlPath);
 
-      // 5. Daten zusammenführen
-      // Datum: Wenn CSV leer, nimm heute
+      // 4. Daten vorbereiten
       const dateToSave = flightData.date ? flightData.date : new Date().toISOString();
-      // Flugnr: Wenn KML leer, "Imported"
       const flightNrToSave = metadata.flightNr || 'Imported';
       const airlineToSave = metadata.airline || 'Unknown Airline';
+      
+      // NEU: Modell und Reg
+      const modelToSave = metadata.planeModel || '-'; 
+      const regToSave = metadata.registration || '-';
 
-      // 6. In Datenbank speichern
+      // 5. In Datenbank speichern (Reihenfolge muss exakt zu Database.ts passen!)
       Database.addFlight(
         dateToSave,            
         depCode,                  
         arrCode,                  
         airlineToSave,            
-        flightNrToSave,           
+        flightNrToSave,
+        modelToSave,            // <--- NEU
+        regToSave,              // <--- NEU
         flightData.direct,
         flightData.flown,
-        flightData.durationMinutes, // <--- NEU HINZUGEFÜGT
+        flightData.durationMinutes,
         savedCsvPath,
         savedKmlPath,
         metadata.fr24Url
       );
 
-      Alert.alert("Erfolg", `Flug ${flightNrToSave} (${depCode}-${arrCode}) gespeichert!`, [
+      Alert.alert("Erfolg", `Flug ${flightNrToSave} gespeichert!`, [
         { text: "OK", onPress: () => {
-            // Formular resetten
             setCsvFile(null);
             setKmlFile(null);
             setDepCode('');
@@ -116,7 +115,7 @@ export default function AddFlightScreen() {
 
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Fehler", error?.message || "Import fehlgeschlagen.");
+      Alert.alert("Fehler", "Import fehlgeschlagen: " + error?.message);
     } finally {
       setIsProcessing(false);
     }
@@ -129,7 +128,7 @@ export default function AddFlightScreen() {
       <View style={styles.card}>
         <ThemedText type="subtitle" style={styles.cardTitle}>Import Flight Data</ThemedText>
         
-        {/* CSV Auswahl Button */}
+        {/* CSV Auswahl */}
         <TouchableOpacity 
           style={[styles.fileButton, csvFile && styles.fileButtonSelected]} 
           onPress={() => pickFile('csv')}
@@ -144,7 +143,7 @@ export default function AddFlightScreen() {
           {csvFile && <IconSymbol name="checkmark.circle.fill" size={20} color="white" />}
         </TouchableOpacity>
 
-        {/* KML Auswahl Button */}
+        {/* KML Auswahl */}
         <TouchableOpacity 
           style={[styles.fileButton, kmlFile && styles.fileButtonSelected]} 
           onPress={() => pickFile('kml')}
@@ -159,12 +158,10 @@ export default function AddFlightScreen() {
           {kmlFile && <IconSymbol name="checkmark.circle.fill" size={20} color="white" />}
         </TouchableOpacity>
 
-        {/* Trennlinie */}
         <View style={styles.separator} />
 
-        {/* HIER SIND DIE EINGABEFELDER */}
+        {/* Inputs */}
         <View style={styles.inputRow}>
-            {/* Start Flughafen */}
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>Departure (z.B. FRA)</Text>
                 <TextInput 
@@ -178,13 +175,10 @@ export default function AddFlightScreen() {
                 />
             </View>
 
-            {/* Kleines Icon in der Mitte */}
             <View style={{justifyContent:'flex-end', paddingBottom: 12}}>
-                 {/* Falls 'airplane' als Icon nicht existiert, nutze 'paperplane' oder 'chevron.right' */}
                  <IconSymbol name="paperplane.fill" size={20} color="#ccc" />
             </View>
 
-            {/* Ziel Flughafen */}
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>Arrival (z.B. JFK)</Text>
                 <TextInput 
@@ -244,15 +238,10 @@ const styles = StyleSheet.create({
   fileButtonSelected: { backgroundColor: '#0a7ea4', borderColor: '#0a7ea4' },
   fileButtonText: { fontWeight: '600', color: '#0a7ea4' },
   
-  separator: {
-    height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 15,
-  },
+  separator: { height: 1, backgroundColor: '#eee', marginVertical: 15 },
 
-  // Styles für die Eingabefelder
   inputRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  inputContainer: { flex: 0.42 }, // Beide Felder nehmen je ca 42% der Breite ein
+  inputContainer: { flex: 0.42 },
   label: { fontSize: 12, color: '#666', marginBottom: 5, fontWeight:'600' },
   input: {
     borderWidth: 1,
